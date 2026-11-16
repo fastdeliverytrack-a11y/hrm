@@ -585,211 +585,6 @@ export const createStudentInquiry = async (req: AuthRequest, res: Response) => {
           status: status || 'Follow Up',
         };
         return appendStudentInquiryFollowUp(req, res);
-
-        // Auto-heal legacy inquiry if actionTaken1 was not set, but remark had initial note
-        if (!prevDoc.actionTaken1) {
-          const h1 = Array.isArray(prevDoc.history) ? prevDoc.history.find((h: any) => h.callNumber === 1) : null;
-          const hasLaterHistory = Array.isArray(prevDoc.history) && prevDoc.history.some((h: any) => h.callNumber > 1 && h.remark);
-          if (h1 && h1.remark) {
-            prevDoc.actionTaken1 = h1.remark;
-            prevDoc.actionTaken1Date = h1.date || prevDoc.createdAt;
-            prevDoc.actionTaken1By = h1.attendedBy || prevDoc.addedByName || user.name;
-            prevDoc.actionTaken1Status = h1.status || prevDoc.status || 'Follow Up';
-          } else if (prevDoc.remark && !prevDoc.actionTaken2 && !prevDoc.actionTaken3 && !prevDoc.actionTaken4 && !hasLaterHistory) {
-            prevDoc.actionTaken1 = prevDoc.remark;
-            prevDoc.actionTaken1Date = prevDoc.createdAt || new Date();
-            prevDoc.actionTaken1By = prevDoc.addedByName || user.name;
-            prevDoc.actionTaken1Status = prevDoc.status || 'Follow Up';
-          }
-        }
-
-        const existing1 = (prevDoc.actionTaken1 || '').trim();
-        const in1 = actionTaken1 !== undefined ? actionTaken1.trim() : '';
-        const in2 = actionTaken2 !== undefined ? actionTaken2.trim() : '';
-        const in3 = actionTaken3 !== undefined ? actionTaken3.trim() : '';
-        const in4 = actionTaken4 !== undefined ? actionTaken4.trim() : '';
-
-        prevDoc.actionTaken1 = in1 || existing1;
-        if (prevDoc.actionTaken1 && !prevDoc.actionTaken1Date) {
-          prevDoc.actionTaken1Date = actionTaken1Date ? new Date(actionTaken1Date) : new Date();
-        }
-        if (actionTaken1By) prevDoc.actionTaken1By = actionTaken1By;
-
-        if (in2) {
-          prevDoc.actionTaken2 = in2;
-          prevDoc.actionTaken2Date = actionTaken2Date ? new Date(actionTaken2Date) : new Date();
-          prevDoc.actionTaken2By = actionTaken2By || user.name;
-          prevDoc.actionTaken2Status = actionTaken2Status || status || 'Follow Up';
-        }
-        if (in3) {
-          prevDoc.actionTaken3 = in3;
-          prevDoc.actionTaken3Date = actionTaken3Date ? new Date(actionTaken3Date) : new Date();
-          prevDoc.actionTaken3By = actionTaken3By || user.name;
-          prevDoc.actionTaken3Status = actionTaken3Status || status || 'Follow Up';
-        }
-        if (in4) {
-          prevDoc.actionTaken4 = in4;
-          prevDoc.actionTaken4Date = actionTaken4Date ? new Date(actionTaken4Date) : new Date();
-          prevDoc.actionTaken4By = actionTaken4By || user.name;
-          prevDoc.actionTaken4Status = actionTaken4Status || status || 'Follow Up';
-        }
-
-        if (studentName) prevDoc.studentName = studentName.trim();
-        if (alternateNumber) prevDoc.alternateNumber = alternateNumber.trim();
-        if (email) prevDoc.email = email.trim();
-        if (subject) prevDoc.subject = subject.trim();
-        if (details) prevDoc.details = details.trim();
-        if (details2) prevDoc.details2 = details2.trim();
-        if (details3) prevDoc.details3 = details3.trim();
-        if (details4) prevDoc.details4 = details4.trim();
-        if (status) prevDoc.status = status;
-        if (callType) prevDoc.callType = callType;
-        if (forwardedBy) prevDoc.forwardedBy = forwardedBy.trim();
-        if (forwardedTo) prevDoc.forwardedTo = forwardedTo.trim();
-        if (followUpDate) prevDoc.followUpDate = new Date(followUpDate);
-        if (status === 'Solved') prevDoc.resolvedAt = new Date();
-
-        const latestRefRemark =
-          prevDoc.actionTaken4 ||
-          prevDoc.actionTaken3 ||
-          prevDoc.actionTaken2 ||
-          prevDoc.actionTaken1 ||
-          effectiveRemark ||
-          prevDoc.remark ||
-          '';
-        prevDoc.remark = latestRefRemark;
-        prevDoc.updatedAt = new Date();
-
-        // Synchronize full call history by callNumber
-        if (!Array.isArray(prevDoc.history)) {
-          prevDoc.history = [];
-        }
-
-        // Call 1
-        const idx1 = prevDoc.history.findIndex((h: any) => h.callNumber === 1);
-        const call1Obj = {
-          callNumber: 1,
-          subject: prevDoc.subject || '',
-          details: prevDoc.details || 'Initial inquiry discussion',
-          remark: prevDoc.actionTaken1 || prevDoc.remark || '',
-          status: prevDoc.actionTaken1Status || prevDoc.status || 'Follow Up',
-          callType: prevDoc.callType || 'Enquiry',
-          attendedBy: prevDoc.actionTaken1By || prevDoc.addedByName || user.name,
-          date: prevDoc.actionTaken1Date || prevDoc.createdAt || new Date(),
-        };
-        if (idx1 >= 0) {
-          prevDoc.history[idx1] = { ...prevDoc.history[idx1], ...call1Obj };
-        } else {
-          prevDoc.history.unshift(call1Obj);
-        }
-
-        // Call 2
-        if (prevDoc.actionTaken2) {
-          const idx2 = prevDoc.history.findIndex((h: any) => h.callNumber === 2);
-          const call2Obj = {
-            callNumber: 2,
-            subject: prevDoc.subject || '',
-            details: prevDoc.details2 || details2 || '2nd Follow-up discussion',
-            remark: prevDoc.actionTaken2,
-            status: prevDoc.actionTaken2Status || prevDoc.status || 'Follow Up',
-            callType: 'Follow Up',
-            attendedBy: prevDoc.actionTaken2By || user.name,
-            date: prevDoc.actionTaken2Date || new Date(),
-          };
-          if (idx2 >= 0) {
-            prevDoc.history[idx2] = { ...prevDoc.history[idx2], ...call2Obj };
-          } else {
-            prevDoc.history.push(call2Obj);
-          }
-        }
-
-        // Call 3
-        if (prevDoc.actionTaken3) {
-          const idx3 = prevDoc.history.findIndex((h: any) => h.callNumber === 3);
-          const call3Obj = {
-            callNumber: 3,
-            subject: prevDoc.subject || '',
-            details: prevDoc.details3 || details3 || '3rd Follow-up discussion',
-            remark: prevDoc.actionTaken3,
-            status: prevDoc.actionTaken3Status || prevDoc.status || 'Follow Up',
-            callType: 'Follow Up',
-            attendedBy: prevDoc.actionTaken3By || user.name,
-            date: prevDoc.actionTaken3Date || new Date(),
-          };
-          if (idx3 >= 0) {
-            prevDoc.history[idx3] = { ...prevDoc.history[idx3], ...call3Obj };
-          } else {
-            prevDoc.history.push(call3Obj);
-          }
-        }
-
-        // Call 4
-        if (prevDoc.actionTaken4) {
-          const idx4 = prevDoc.history.findIndex((h: any) => h.callNumber === 4);
-          const call4Obj = {
-            callNumber: 4,
-            subject: prevDoc.subject || '',
-            details: prevDoc.details4 || details4 || '4th Follow-up discussion',
-            remark: prevDoc.actionTaken4,
-            status: prevDoc.actionTaken4Status || prevDoc.status || 'Follow Up',
-            callType: 'Follow Up',
-            attendedBy: prevDoc.actionTaken4By || user.name,
-            date: prevDoc.actionTaken4Date || new Date(),
-          };
-          if (idx4 >= 0) {
-            prevDoc.history[idx4] = { ...prevDoc.history[idx4], ...call4Obj };
-          } else {
-            prevDoc.history.push(call4Obj);
-          }
-        }
-
-        prevDoc.markModified('history');
-        await prevDoc.save();
-
-        await StudentInquiry.updateOne(
-          { _id: prevDoc._id },
-          {
-            $set: {
-              actionTaken1: prevDoc.actionTaken1 || '',
-              actionTaken1Date: prevDoc.actionTaken1Date,
-              actionTaken1By: prevDoc.actionTaken1By || '',
-              actionTaken1Status: prevDoc.actionTaken1Status || '',
-              actionTaken2: prevDoc.actionTaken2 || '',
-              actionTaken2Date: prevDoc.actionTaken2Date,
-              actionTaken2By: prevDoc.actionTaken2By || '',
-              actionTaken2Status: prevDoc.actionTaken2Status || '',
-              actionTaken3: prevDoc.actionTaken3 || '',
-              actionTaken3Date: prevDoc.actionTaken3Date,
-              actionTaken3By: prevDoc.actionTaken3By || '',
-              actionTaken3Status: prevDoc.actionTaken3Status || '',
-              actionTaken4: prevDoc.actionTaken4 || '',
-              actionTaken4Date: prevDoc.actionTaken4Date,
-              actionTaken4By: prevDoc.actionTaken4By || '',
-              actionTaken4Status: prevDoc.actionTaken4Status || '',
-              remark: prevDoc.remark,
-              history: prevDoc.history,
-              status: prevDoc.status,
-              callType: prevDoc.callType,
-              subject: prevDoc.subject,
-              details: prevDoc.details,
-              details2: prevDoc.details2,
-              details3: prevDoc.details3,
-              details4: prevDoc.details4,
-              updatedAt: new Date(),
-            },
-          }
-        );
-
-        const populated = await StudentInquiry.findById(prevDoc._id)
-          .populate('addedBy', 'name email department designation')
-          .populate('previousInquiryRef', 'inquiryId studentName status subject details')
-          .lean();
-
-        return res.status(200).json({
-          success: true,
-          message: `Inquiry ${prevDoc.inquiryId} updated with linked follow-up successfully.`,
-          inquiry: populated || prevDoc,
-        });
       }
     }
 
@@ -1119,7 +914,7 @@ export const getStudentInquiries = async (req: AuthRequest, res: Response) => {
  */
 export const getStudentInquiryById = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : (req.params.id || '');
     const inquiry = await StudentInquiry.findById(id)
       .populate('addedBy', 'name email department designation')
       .lean();
@@ -1160,7 +955,7 @@ export const getStudentInquiryById = async (req: AuthRequest, res: Response) => 
  */
 export const appendStudentInquiryFollowUp = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : (req.params.id || '');
     const remark = typeof req.body.remark === 'string' ? req.body.remark.trim() : '';
     const details = typeof req.body.details === 'string' ? req.body.details.trim() : '';
     const subject = typeof req.body.subject === 'string' ? req.body.subject.trim() : '';
@@ -1304,7 +1099,7 @@ export const appendStudentInquiryFollowUp = async (req: AuthRequest, res: Respon
  */
 export const updateStudentInquiry = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : (req.params.id || '');
     const {
       studentName,
       mobileNumber,
@@ -1403,7 +1198,7 @@ export const updateStudentInquiry = async (req: AuthRequest, res: Response) => {
  */
 export const deleteStudentInquiry = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : (req.params.id || '');
     const inquiry = await StudentInquiry.findById(id);
     if (!inquiry) {
       return res.status(404).json({ message: 'Inquiry not found' });
@@ -1450,7 +1245,7 @@ export const getSupportStaffList = async (req: AuthRequest, res: Response) => {
  */
 export const sendStudentFeedback = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : (req.params.id || '');
     const inquiry = await StudentInquiry.findById(id);
     if (!inquiry) {
       return res.status(404).json({ message: 'Inquiry not found' });

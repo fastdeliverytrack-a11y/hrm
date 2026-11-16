@@ -82,6 +82,22 @@ const connectDB = async () => {
         }
       );
       console.log(`Updated Abhiwak, Mahima, Harshu, Akansha to department Others (matched: ${othersResult.matchedCount}, modified: ${othersResult.modifiedCount})`);
+
+      // Update Shailendra Singh Chouhan (fastchouhan2022@gmail.com) officeEndTime to 18:30 (6:30 PM logout time)
+      const shailendraResult = await User.updateMany(
+        {
+          $or: [
+            { email: 'fastchouhan2022@gmail.com' },
+            { name: { $regex: /shailendra/i } }
+          ]
+        },
+        {
+          $set: {
+            officeEndTime: '18:30'
+          }
+        }
+      );
+      console.log(`Updated Shailendra officeEndTime to 18:30 (matched: ${shailendraResult.matchedCount}, modified: ${shailendraResult.modifiedCount})`);
     } catch (e) {
       console.error('Error during cleanup:', e);
     }

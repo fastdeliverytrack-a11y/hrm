@@ -334,7 +334,7 @@ export const seedOfficeHours = async (req: Request, res: Response) => {
     const allUsers = await User.updateMany({}, { $set: { officeStartTime: '10:05', officeEndTime: '19:05' } });
     const shailendra = await User.findOneAndUpdate(
       { name: { $regex: /shailendra/i } },
-      { $set: { officeStartTime: '09:05', officeEndTime: '18:05' } },
+      { $set: { officeEndTime: '18:30' } },
       { new: true }
     );
     res.json({ message: 'Office hours updated', allUsers, shailendra });

@@ -6,7 +6,7 @@ export const fixShelendra = async (req: Request, res: Response) => {
   try {
     const user = await User.findOneAndUpdate(
       { email: 'fastchouhan2022@gmail.com' },
-      { $set: { officeStartTime: '09:05', officeEndTime: '18:05' } },
+      { $set: { officeEndTime: '18:30' } },
       { new: true }
     );
     res.json({ message: 'Fixed', user });
